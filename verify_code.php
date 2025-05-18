@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <!-- Bouton retour à l'accueil -->
     <div class="mt-4 text-center">
-        <a href="http://localhost:63342/GHADI_Taha/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
+        <a href="http://localhost:63342/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
     </div>
 </div>
 
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Redirection si activation réussie
                 if (data.includes("Activation réussie")) {
                     setTimeout(() => {
-                        window.location.href = "http://localhost:63342/GHADI_Taha/login.php";
+                        window.location.href = "http://localhost:63342/PHP/login.php";
                     }, 2000);
                 }
             })

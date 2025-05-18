@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <p class="text-muted">Déjà inscrit ?</p>
         <div class="flex gap-4">
             <a href="login.php" class="btn-secondary">Se connecter</a>
-            <a href="http://localhost:63342/GHADI_Taha/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
+            <a href="http://localhost:63342/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
         </div>
     </div>
 </div>

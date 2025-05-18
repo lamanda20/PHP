@@ -29,7 +29,7 @@ function sendActivationEmail($email, $prenom, $code_activation) {
                           <p>Merci de vous être inscrit sur notre plateforme.</p>
                           <p>Votre code d'activation est : <strong>$code_activation</strong></p>
                           <p>Cliquez sur le lien suivant pour activer votre compte :</p>
-                          <a href='http://localhost/GHADI_Taha/verify_code.php'>Activer mon compte</a>";
+                          <a href='http://localhost/PHP/verify_code.php'>Activer mon compte</a>";
 
         $mail->send();
         return true;

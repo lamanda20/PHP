@@ -75,7 +75,7 @@ $etudiant = $stmt->fetch();
 
     <div class="flex justify-between items-center mt-4">
         <a href="logout.php" class="btn">🚪 Se déconnecter</a>
-        <a href="http://localhost:63342/GHADI_Taha/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
+        <a href="http://localhost:63342/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
     </div>
 </div>
 </body>

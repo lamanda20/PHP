@@ -85,7 +85,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
                     $_SESSION['user_id'] = $admin['id'];
                     $_SESSION['user_email'] = $admin['email'];
                     $_SESSION['role'] = 'admin';
-                    header("Location: /GHADI_Taha/admin_dashboard.php");
+                    header("Location: /PHP/admin_dashboard.php");
                     exit();
                 } else {
                     $message = "Mot de passe incorrect.";
@@ -129,7 +129,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
 
         <!-- Bouton retour à l'accueil déplacé en bas -->
         <div class="mt-4 text-center">
-            <a href="http://localhost:63342/GHADI_Taha/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
+            <a href="http://localhost:63342/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
         </div>
     </div>
     </body>
