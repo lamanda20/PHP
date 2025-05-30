@@ -129,7 +129,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
 
         <!-- Bouton retour à l'accueil déplacé en bas -->
         <div class="mt-4 text-center">
-            <a href="http://localhost:63342/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
+            <a href="http://localhost:8080/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
         </div>
     </div>
     </body>
