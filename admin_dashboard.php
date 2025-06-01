@@ -6,7 +6,7 @@ session_start();
 require_once 'db.php';
 
 // Vérifier si l'utilisateur est déjà connecté en tant qu'administrateur
-if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
+if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     // Afficher le tableau de bord si l'administrateur est connecté
     ?>
     <!DOCTYPE html>
@@ -29,16 +29,15 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
                     <th>Heure d'arrivée</th>
                 </tr>
                 <?php
-                // Récupération des présences d'aujourd'hui via table_attendance
                 $stmt = $pdo->query("SELECT id, student_id, time_in 
                                     FROM table_attendance 
                                     WHERE DATE(time_in) = CURDATE() 
                                     ORDER BY time_in");
                 while ($presence = $stmt->fetch()) {
                     echo "<tr>
-                            <td>" . htmlspecialchars($presence['id']) . "</td>
-                            <td>" . htmlspecialchars($presence['student_id']) . "</td>
-                            <td>" . htmlspecialchars($presence['time_in']) . "</td>
+                            <td>" . htmlspecialchars($presence['id'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($presence['student_id'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($presence['time_in'] ?? '') . "</td>
                         </tr>";
                 }
                 if ($stmt->rowCount() == 0) {
@@ -63,20 +62,22 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
                     <th>Actions</th>
                 </tr>
                 <?php
-                // Récupération de tous les étudiants avec leurs filières et modules (alias corrigés)
-                $stmt = $pdo->query("SELECT e.id, e.nom, e.prenom, e.email, e.date_inscription, fi.nom_filiere, m.nom_module, ff.nom_fichier 
+                $stmt = $pdo->query("SELECT e.id, e.nom, e.prenom, e.email, e.date_inscription, f.nom_filiere, m.nom_module, fi.nom_fichier 
                                     FROM etudiants e 
-                                    LEFT JOIN filieres fi ON e.id_filiere = fi.id_filiere 
+                                    LEFT JOIN filieres f ON e.id_filiere = f.id_filiere 
                                     LEFT JOIN inscriptions_modules im ON e.id = im.id_etudiant 
                                     LEFT JOIN modules m ON im.id_module = m.id_module 
-                                    LEFT JOIN fichiers ff ON e.id = ff.etudiant_id 
+                                    LEFT JOIN fichiers fi ON e.id = fi.etudiant_id 
                                     ORDER BY e.nom, e.prenom");
                 while ($etudiant = $stmt->fetch()) {
+                    $stmt_modules = $pdo->prepare("SELECT id_module, nom_module FROM modules WHERE id_module IN (SELECT id_module FROM inscriptions_modules WHERE id_etudiant = ?)");
+                    $stmt_modules->execute([$etudiant['id']]);
+                    $modules = $stmt_modules->fetchAll();
                     echo "<tr>
-                            <td>" . htmlspecialchars($etudiant['id']) . "</td>
-                            <td>" . htmlspecialchars($etudiant['prenom'] . ' ' . $etudiant['nom']) . "</td>
-                            <td>" . htmlspecialchars($etudiant['email']) . "</td>
-                            <td>" . htmlspecialchars($etudiant['date_inscription']) . "</td>
+                            <td>" . htmlspecialchars($etudiant['id'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($etudiant['prenom'] ?? '') . " " . htmlspecialchars($etudiant['nom'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($etudiant['email'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($etudiant['date_inscription'] ?? '') . "</td>
                             <td>" . htmlspecialchars($etudiant['nom_filiere'] ?? '') . "</td>
                             <td>" . htmlspecialchars($etudiant['nom_module'] ?? '') . "</td>
                             <td>";
@@ -88,7 +89,16 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
                     echo "</td>
                             <td>
                                 <form action='mark_absence.php' method='post' style='display:inline;'>
-                                    <input type='hidden' name='etudiant_id' value='" . htmlspecialchars($etudiant['id']) . "'>
+                                    <input type='hidden' name='etudiant_id' value='" . htmlspecialchars($etudiant['id'] ?? '') . "'>
+                                    <select name='module_id' required class='form-input' style='margin-right: 10px;'>";
+                    if (!empty($modules)) {
+                        foreach ($modules as $module) {
+                            echo "<option value='" . htmlspecialchars($module['id_module'] ?? '') . "'>" . htmlspecialchars($module['nom_module'] ?? '') . "</option>";
+                        }
+                    } else {
+                        echo "<option value='1'>Aucun module</option>";
+                    }
+                    echo "</select>
                                     <button type='submit' class='btn'>Marquer Absent</button>
                                 </form>
                             </td>
@@ -111,7 +121,6 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
                     <th>Statut</th>
                 </tr>
                 <?php
-                // Récupération des justificatifs soumis par les étudiants
                 $stmt = $pdo->query("SELECT j.id, e.prenom, e.nom, j.date_absence, m.nom_module, j.fichier_path, j.statut 
                                     FROM justificatifs j 
                                     JOIN etudiants e ON j.etudiant_id = e.id 
@@ -120,10 +129,10 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
                                     ORDER BY j.date_absence");
                 while ($justificatif = $stmt->fetch()) {
                     echo "<tr>
-                            <td>" . htmlspecialchars($justificatif['id']) . "</td>
-                            <td>" . htmlspecialchars($justificatif['prenom'] . ' ' . $justificatif['nom']) . "</td>
-                            <td>" . htmlspecialchars($justificatif['date_absence']) . "</td>
-                            <td>" . htmlspecialchars($justificatif['nom_module']) . "</td>
+                            <td>" . htmlspecialchars($justificatif['id'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($justificatif['prenom'] ?? '') . " " . htmlspecialchars($justificatif['nom'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($justificatif['date_absence'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($justificatif['nom_module'] ?? '') . "</td>
                             <td>";
                     if ($justificatif['fichier_path']) {
                         echo "<a href='" . htmlspecialchars($justificatif['fichier_path']) . "' target='_blank'>Télécharger</a>";
@@ -131,7 +140,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
                         echo "Aucun fichier";
                     }
                     echo "</td>
-                            <td>" . htmlspecialchars($justificatif['statut']) . "</td>
+                            <td>" . htmlspecialchars($justificatif['statut'] ?? '') . "</td>
                         </tr>";
                 }
                 if ($stmt->rowCount() == 0) {
@@ -156,15 +165,12 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
         $message = "";
 
         try {
-            // Vérifier si l'administrateur existe
             $stmt = $pdo->prepare("SELECT * FROM administrateurs WHERE email = ?");
             $stmt->execute([$email]);
             $admin = $stmt->fetch();
 
             if ($admin) {
-                // Vérifier le mot de passe haché
                 if (password_verify($password, $admin['password'])) {
-                    // Connexion réussie
                     $_SESSION['user_id'] = $admin['id'];
                     $_SESSION['user_email'] = $admin['email'];
                     $_SESSION['role'] = 'admin';
@@ -191,28 +197,18 @@ if (isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin') {
     <body>
     <div class="container">
         <h1>Connexion Administrateur</h1>
-
-        <!-- Formulaire de connexion -->
         <form action="admin_dashboard.php" method="post">
             <label>Email :</label>
             <input type="email" name="email" required>
-
             <label>Mot de Passe :</label>
             <input type="password" name="password" required>
-
             <button type="submit">Se connecter</button>
         </form>
-
-        <!-- Affichage du message de retour -->
         <?php if (isset($message) && !empty($message)): ?>
-            <p class="message message-error">
-                <?php echo htmlspecialchars($message); ?>
-            </p>
+            <p class="message message-error"><?php echo htmlspecialchars($message); ?></p>
         <?php endif; ?>
-
-        <!-- Bouton retour à l'accueil déplacé en bas -->
         <div class="mt-4 text-center">
-            <a href="http://localhost:63342/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
+            <a href="http://localhost:8080/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
         </div>
     </div>
     </body>
