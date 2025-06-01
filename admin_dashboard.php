@@ -1,13 +1,10 @@
 <?php
 // admin_dashboard.php - Tableau de Bord Administrateur
 
-// Démarrer la session
 session_start();
 require_once 'db.php';
 
-// Vérifier si l'utilisateur est déjà connecté en tant qu'administrateur
 if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-    // Afficher le tableau de bord si l'administrateur est connecté
     ?>
     <!DOCTYPE html>
     <html>
@@ -19,7 +16,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
     <div class="container">
         <h1>Bienvenue, Administrateur</h1>
 
-        <!-- Liste des Présences (QR Scan) -->
         <div class="table-responsive">
             <h2>Présences Enregistrées Aujourd'hui</h2>
             <table>
@@ -47,7 +43,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
             </table>
         </div>
 
-        <!-- Gestion des Étudiants par Filière et Module -->
         <h2>Gestion des Étudiants</h2>
         <div class="table-responsive">
             <table>
@@ -57,58 +52,49 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
                     <th>Email</th>
                     <th>Date d'Inscription</th>
                     <th>Filière</th>
-                    <th>Module</th>
-                    <th>Fichier (Téléchargement)</th>
-                    <th>Actions</th>
+                    <th>Marquer Absence</th>
                 </tr>
                 <?php
-                $stmt = $pdo->query("SELECT e.id, e.nom, e.prenom, e.email, e.date_inscription, f.nom_filiere, m.nom_module, fi.nom_fichier 
+                $stmt = $pdo->query("SELECT e.id, e.nom, e.prenom, e.email, e.date_inscription, e.id_filiere, f.nom_filiere 
                                     FROM etudiants e 
                                     LEFT JOIN filieres f ON e.id_filiere = f.id_filiere 
-                                    LEFT JOIN inscriptions_modules im ON e.id = im.id_etudiant 
-                                    LEFT JOIN modules m ON im.id_module = m.id_module 
-                                    LEFT JOIN fichiers fi ON e.id = fi.etudiant_id 
                                     ORDER BY e.nom, e.prenom");
                 while ($etudiant = $stmt->fetch()) {
-                    $stmt_modules = $pdo->prepare("SELECT id_module, nom_module FROM modules WHERE id_module IN (SELECT id_module FROM inscriptions_modules WHERE id_etudiant = ?)");
-                    $stmt_modules->execute([$etudiant['id']]);
-                    $modules = $stmt_modules->fetchAll();
+                    $modules = [];
+                    if (!empty($etudiant['id_filiere'])) {
+                        $stmt_modules = $pdo->prepare("SELECT m.id_module, m.nom_module 
+                                                      FROM modules m 
+                                                      WHERE m.id_filiere = ?");
+                        $stmt_modules->execute([$etudiant['id_filiere']]);
+                        $modules = $stmt_modules->fetchAll();
+                    }
                     echo "<tr>
                             <td>" . htmlspecialchars($etudiant['id'] ?? '') . "</td>
                             <td>" . htmlspecialchars($etudiant['prenom'] ?? '') . " " . htmlspecialchars($etudiant['nom'] ?? '') . "</td>
                             <td>" . htmlspecialchars($etudiant['email'] ?? '') . "</td>
                             <td>" . htmlspecialchars($etudiant['date_inscription'] ?? '') . "</td>
-                            <td>" . htmlspecialchars($etudiant['nom_filiere'] ?? '') . "</td>
-                            <td>" . htmlspecialchars($etudiant['nom_module'] ?? '') . "</td>
+                            <td>" . htmlspecialchars($etudiant['nom_filiere'] ?? 'Non défini') . "</td>
                             <td>";
-                    if ($etudiant['nom_fichier']) {
-                        echo "<a href='uploads/" . htmlspecialchars($etudiant['nom_fichier']) . "' target='_blank'>Télécharger</a>";
-                    } else {
-                        echo "Aucun fichier";
-                    }
-                    echo "</td>
-                            <td>
-                                <form action='mark_absence.php' method='post' style='display:inline;'>
-                                    <input type='hidden' name='etudiant_id' value='" . htmlspecialchars($etudiant['id'] ?? '') . "'>
-                                    <select name='module_id' required class='form-input' style='margin-right: 10px;'>";
                     if (!empty($modules)) {
+                        echo "<form action='mark_absence.php' method='post' style='display:inline;'>
+                                <input type='hidden' name='etudiant_id' value='" . htmlspecialchars($etudiant['id'] ?? '') . "'>
+                                <select name='module_id' required class='form-input' style='margin-right: 10px;'>";
                         foreach ($modules as $module) {
                             echo "<option value='" . htmlspecialchars($module['id_module'] ?? '') . "'>" . htmlspecialchars($module['nom_module'] ?? '') . "</option>";
                         }
+                        echo "</select>
+                                <button type='submit' class='btn'>Marquer Absent</button>
+                              </form>";
                     } else {
-                        echo "<option value='1'>Aucun module</option>";
+                        echo "Aucun module disponible";
                     }
-                    echo "</select>
-                                    <button type='submit' class='btn'>Marquer Absent</button>
-                                </form>
-                            </td>
+                    echo "</td>
                         </tr>";
                 }
                 ?>
             </table>
         </div>
 
-        <!-- Affichage des Justificatifs -->
         <h2>Justificatifs Soumis par les Étudiants</h2>
         <div class="table-responsive">
             <table>
@@ -125,7 +111,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
                                     FROM justificatifs j 
                                     JOIN etudiants e ON j.etudiant_id = e.id 
                                     JOIN modules m ON j.module_id = m.id_module 
-                                    WHERE j.marque_par_admin = FALSE 
                                     ORDER BY j.date_absence");
                 while ($justificatif = $stmt->fetch()) {
                     echo "<tr>
@@ -135,7 +120,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
                             <td>" . htmlspecialchars($justificatif['nom_module'] ?? '') . "</td>
                             <td>";
                     if ($justificatif['fichier_path']) {
-                        echo "<a href='" . htmlspecialchars($justificatif['fichier_path']) . "' target='_blank'>Télécharger</a>";
+                        echo "<a href='" . htmlspecialchars($justificatif['fichier_path']) . "' target='_blank' download>Télécharger</a>";
                     } else {
                         echo "Aucun fichier";
                     }
@@ -151,14 +136,13 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
         </div>
 
         <h3>Options :</h3>
-        <a href="logout.php" class="btn">🚪 Se déconnecter</a>
+        <a href="acceuil.php" class="btn">🚪 Se déconnecter</a>
         <a href="admin_pdf.php" class="btn">Générer Rapport PDF</a>
     </div>
     </body>
     </html>
     <?php
 } else {
-    // Formulaire de Connexion Administrateur
     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $email = htmlspecialchars(trim($_POST['email']));
         $password = htmlspecialchars(trim($_POST['password']));
