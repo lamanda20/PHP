@@ -3,7 +3,9 @@
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require 'vendor/autoload.php'; // Charger PHPMailer via Composer
+require 'phpmailer-master/src/Exception.php';
+require 'phpmailer-master/src/PHPMailer.php';
+require 'phpmailer-master/src/SMTP.php';
 
 function sendActivationEmail($email, $prenom, $code_activation) {
     $mail = new PHPMailer(true);
