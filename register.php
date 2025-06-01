@@ -1,12 +1,8 @@
 <?php
-// register.php - Inscription avec envoi d'email de confirmation
-
-// Démarrer la session
 session_start();
 require_once 'db.php';
-require_once 'send_email.php'; // Charger la fonction d'envoi d'email
+require_once 'send_email.php';
 
-// Vérifier si la requête est POST (formulaire soumis)
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nom = htmlspecialchars(trim($_POST['nom']));
     $prenom = htmlspecialchars(trim($_POST['prenom']));
@@ -15,8 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = trim($_POST['password']);
     $confirm_password = trim($_POST['confirm_password']);
     $code_activation = rand(10000000, 99999999);
+    $id_filiere = intval($_POST['id_filiere']);
 
-    // Vérifier si les mots de passe correspondent
     if ($password !== $confirm_password) {
         $message_type = "error";
         $message = "Les mots de passe ne correspondent pas.";
@@ -27,19 +23,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
         try {
-            // Vérifier si l'email ou l'apogée existe déjà
             $stmt = $pdo->prepare("SELECT * FROM etudiants WHERE email = ? OR apogee = ?");
             $stmt->execute([$email, $apogee]);
             if ($stmt->rowCount() > 0) {
                 $message_type = "error";
                 $message = "Email ou Apogée déjà utilisé.";
             } else {
-                // Insérer l'étudiant dans la base de données
-                $stmt = $pdo->prepare("INSERT INTO etudiants (nom, prenom, apogee, email, mot_de_passe, code_activation) 
-                                       VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$nom, $prenom, $apogee, $email, $hashed_password, $code_activation]);
+                $stmt = $pdo->prepare("INSERT INTO etudiants (nom, prenom, apogee, email, mot_de_passe, code_activation, id_filiere) 
+                                       VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$nom, $prenom, $apogee, $email, $hashed_password, $code_activation, $id_filiere]);
 
-                // Envoi de l'email d'activation
                 if (sendActivationEmail($email, $prenom, $code_activation)) {
                     $message_type = "success";
                     $message = "Inscription réussie ! Un email d'activation a été envoyé à votre adresse.";
@@ -54,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -85,7 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </div>
     <?php else: ?>
-        <!-- Formulaire d'inscription -->
         <div class="card">
             <form action="register.php" method="post">
                 <div class="flex gap-4">
@@ -93,44 +84,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <label for="nom">Nom :</label>
                         <input type="text" id="nom" name="nom" required>
                     </div>
-
                     <div class="w-full">
                         <label for="prenom">Prénom :</label>
                         <input type="text" id="prenom" name="prenom" required>
                     </div>
                 </div>
-
                 <label for="apogee">Apogée :</label>
                 <input type="text" id="apogee" name="apogee" required>
-
                 <label for="email">Email :</label>
                 <input type="email" id="email" name="email" required>
-
                 <label for="password">Mot de Passe :</label>
                 <input type="password" id="password" name="password" required>
                 <p class="text-muted mb-2">Le mot de passe doit contenir au moins 8 caractères.</p>
-
                 <label for="confirm_password">Confirmer Mot de Passe :</label>
                 <input type="password" id="confirm_password" name="confirm_password" required>
-
+                <label for="id_filiere">Filière :</label>
+                <select id="id_filiere" name="id_filiere" required>
+                    <?php
+                    $stmt = $pdo->query("SELECT id_filiere, nom_filiere FROM filieres");
+                    while ($filiere = $stmt->fetch()) {
+                        echo "<option value='{$filiere['id_filiere']}'>" . htmlspecialchars($filiere['nom_filiere']) . "</option>";
+                    }
+                    ?>
+                </select>
                 <button type="submit" class="btn">S'inscrire</button>
             </form>
         </div>
     <?php endif; ?>
 
-    <!-- Message d'erreur ou d'avertissement -->
     <?php if (isset($message) && isset($message_type) && ($message_type === "error" || $message_type === "warning")): ?>
         <div class="message <?php echo $message_type === 'error' ? 'message-error' : 'message-success'; ?> mt-3">
             <?php echo htmlspecialchars($message); ?>
         </div>
     <?php endif; ?>
 
-    <!-- Liens de navigation -->
     <div class="flex justify-between items-center mt-4">
         <p class="text-muted">Déjà inscrit ?</p>
         <div class="flex gap-4">
             <a href="login.php" class="btn-secondary">Se connecter</a>
-            <a href="http://localhost:63342/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
+            <a href="http://localhost:8080/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
         </div>
     </div>
 </div>

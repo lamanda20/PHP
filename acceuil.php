@@ -15,10 +15,10 @@ session_start();
     <h1>Bienvenue sur la Plateforme Étudiante</h1>
 
     <div class="menu">
-        <a href="http://localhost:63342/PHP/register.php" class="btn">🔹 Inscription Étudiant</a>
-        <a href="http://localhost:63342/PHP/login.php" class="btn">🔹 Connexion Étudiant</a>
-        <a href="http://localhost:63342/PHP/admin_dashboard.php" class="btn">🔹 Connexion Administrateur</a>
-        <a href="http://localhost:63342/PHP/scanner.php" class="btn">🔹 Marquer ma présence</a>
+        <a href="http://localhost:8080/PHP/register.php" class="btn">🔹 Inscription Étudiant</a>
+        <a href="http://localhost:8080/PHP/login.php" class="btn">🔹 Connexion Étudiant</a>
+        <a href="http://localhost:8080/PHP/admin_dashboard.php" class="btn">🔹 Connexion Administrateur</a>
+        <a href="http://localhost:8080/PHP/scanner.php" class="btn">🔹 Marquer ma présence</a>
     </div>
 
 
