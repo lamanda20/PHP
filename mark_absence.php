@@ -10,16 +10,17 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $etudiant_id = htmlspecialchars(trim($_POST['etudiant_id']));
+    $module_id = htmlspecialchars(trim($_POST['module_id']));
     $admin_id = $_SESSION['user_id'];
 
     try {
-        // Insérer une absence marquée par l'admin dans justificatifs
-        $stmt = $pdo->prepare("INSERT INTO justificatifs (etudiant_id, date_absence, statut, marque_par_admin, admin_id) 
-                               VALUES (?, CURDATE(), 'marque_par_admin', TRUE, ?)");
-        $stmt->execute([$etudiant_id, $admin_id]);
+        $stmt = $pdo->prepare("INSERT INTO justificatifs (etudiant_id, module_id, date_absence, statut, marque_par_admin, admin_id) 
+                               VALUES (?, ?, CURDATE(), 'absente_par_admin', TRUE, ?)");
+        $stmt->execute([$etudiant_id, $module_id, $admin_id]);
         $message = "Absence marquée avec succès.";
     } catch (Exception $e) {
         $message = "Erreur : " . $e->getMessage();
+        error_log("Erreur dans mark_absence.php : " . $e->getMessage());
     }
 } else {
     $message = "Requête invalide.";
