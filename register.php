@@ -1,12 +1,10 @@
 <?php
 // register.php - Inscription avec envoi d'email de confirmation
 
-// Démarrer la session
 session_start();
 require_once 'db.php';
-require_once 'send_email.php'; // Charger la fonction d'envoi d'email
+require_once 'send_email.php';
 
-// Vérifier si la requête est POST (formulaire soumis)
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nom = htmlspecialchars(trim($_POST['nom']));
     $prenom = htmlspecialchars(trim($_POST['prenom']));
@@ -14,9 +12,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = htmlspecialchars(trim($_POST['email']));
     $password = trim($_POST['password']);
     $confirm_password = trim($_POST['confirm_password']);
+    $id_filiere = intval($_POST['id_filiere']);
     $code_activation = rand(10000000, 99999999);
+    $message = "";
+    $message_type = "";
 
-    // Vérifier si les mots de passe correspondent
+    // Validate password
     if ($password !== $confirm_password) {
         $message_type = "error";
         $message = "Les mots de passe ne correspondent pas.";
@@ -26,35 +27,82 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-        try {
-            // Vérifier si l'email ou l'apogée existe déjà
-            $stmt = $pdo->prepare("SELECT * FROM etudiants WHERE email = ? OR apogee = ?");
-            $stmt->execute([$email, $apogee]);
-            if ($stmt->rowCount() > 0) {
-                $message_type = "error";
-                $message = "Email ou Apogée déjà utilisé.";
-            } else {
-                // Insérer l'étudiant dans la base de données
-                $stmt = $pdo->prepare("INSERT INTO etudiants (nom, prenom, apogee, email, mot_de_passe, code_activation) 
-                                       VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$nom, $prenom, $apogee, $email, $hashed_password, $code_activation]);
+        // Handle profile photo upload
+        $photo_path = null;
+        if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
+            $fichier = $_FILES['profile_image'];
+            $nom_fichier = basename($fichier['name']);
+            $taille_fichier = $fichier['size'];
+            $type_fichier = strtolower(pathinfo($nom_fichier, PATHINFO_EXTENSION));
+            $dossier_televersement = "Uploads/";
+            $chemin_fichier = $dossier_televersement . uniqid() . '.' . $type_fichier;
+            $types_autorises = ['jpg', 'jpeg', 'png'];
 
-                // Envoi de l'email d'activation
-                if (sendActivationEmail($email, $prenom, $code_activation)) {
-                    $message_type = "success";
-                    $message = "Inscription réussie ! Un email d'activation a été envoyé à votre adresse.";
+            if (!in_array($type_fichier, $types_autorises)) {
+                $message_type = "error";
+                $message = "Format de fichier non autorisé pour la photo (JPG, PNG uniquement).";
+            } elseif ($taille_fichier > 2 * 1024 * 1024) {
+                $message_type = "error";
+                $message = "La photo est trop volumineuse (limite de 2 Mo).";
+            } else {
+                if (!is_dir($dossier_televersement)) {
+                    mkdir($dossier_televersement, 0777, true);
+                }
+                if (!move_uploaded_file($fichier['tmp_name'], $chemin_fichier)) {
+                    $message_type = "error";
+                    $message = "Erreur lors du téléversement de la photo.";
                 } else {
-                    $message_type = "warning";
-                    $message = "Inscription réussie, mais l'email d'activation n'a pas pu être envoyé.";
+                    $photo_path = $chemin_fichier;
                 }
             }
-        } catch (Exception $e) {
+        } else {
             $message_type = "error";
-            $message = "Erreur : " . $e->getMessage();
+            $message = "Veuillez sélectionner une photo de profil.";
+        }
+
+        if (!$message) {
+            try {
+                // Check if email or apogee already exists
+                $stmt = $pdo->prepare("SELECT * FROM etudiants WHERE email = ? OR apogee = ?");
+                $stmt->execute([$email, $apogee]);
+                if ($stmt->rowCount() > 0) {
+                    $message_type = "error";
+                    $message = "Email ou Apogée déjà utilisé.";
+                } else {
+                    // Insert student into database
+                    $stmt = $pdo->prepare("INSERT INTO etudiants (nom, prenom, apogee, email, mot_de_passe, code_activation, id_filiere, photo_path) 
+                                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$nom, $prenom, $apogee, $email, $hashed_password, $code_activation, $id_filiere, $photo_path]);
+
+                    // Get the newly inserted student ID
+                    $etudiant_id = $pdo->lastInsertId();
+
+                    // Enroll in all modules for the selected filière
+                    $stmt = $pdo->prepare("INSERT INTO inscriptions_modules (id_etudiant, id_module) 
+                                           SELECT ?, id_module FROM modules WHERE id_filiere = ?");
+                    $stmt->execute([$etudiant_id, $id_filiere]);
+
+                    // Send activation email
+                    if (sendActivationEmail($email, $prenom, $code_activation)) {
+                        $_SESSION['email_activated'] = $email;
+                        $message_type = "success";
+                        $message = "Inscription réussie ! Un email d'activation a été envoyé à votre adresse.";
+                    } else {
+                        $message_type = "warning";
+                        $message = "Inscription réussie, mais l'email d'activation n'a pas pu être envoyé.";
+                    }
+                }
+            } catch (Exception $e) {
+                $message_type = "error";
+                $message = "Erreur : " . $e->getMessage();
+            }
         }
     }
 }
 
+// Fetch filières for dropdown
+$stmt = $pdo->query("SELECT id_filiere, nom_filiere FROM filieres");
+$filieres = $stmt->fetchAll();
 ?>
 
 <!DOCTYPE html>
@@ -85,9 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
         </div>
     <?php else: ?>
-        <!-- Formulaire d'inscription -->
         <div class="card">
-            <form action="register.php" method="post">
+            <form action="register.php" method="post" enctype="multipart/form-data">
                 <div class="flex gap-4">
                     <div class="w-full">
                         <label for="nom">Nom :</label>
@@ -113,19 +160,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <label for="confirm_password">Confirmer Mot de Passe :</label>
                 <input type="password" id="confirm_password" name="confirm_password" required>
 
+                <label for="id_filiere">Filière :</label>
+                <select id="id_filiere" name="id_filiere" required>
+                    <option value="">Sélectionnez une filière</option>
+                    <?php foreach ($filieres as $filiere): ?>
+                        <option value="<?php echo $filiere['id_filiere']; ?>">
+                            <?php echo htmlspecialchars($filiere['nom_filiere']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <label for="profile_image">Photo de profil (JPG, PNG, max 2 Mo) :</label>
+                <input type="file" id="profile_image" name="profile_image" accept=".jpg,.jpeg,.png" required>
+
                 <button type="submit" class="btn">S'inscrire</button>
             </form>
         </div>
     <?php endif; ?>
 
-    <!-- Message d'erreur ou d'avertissement -->
     <?php if (isset($message) && isset($message_type) && ($message_type === "error" || $message_type === "warning")): ?>
         <div class="message <?php echo $message_type === 'error' ? 'message-error' : 'message-success'; ?> mt-3">
             <?php echo htmlspecialchars($message); ?>
         </div>
     <?php endif; ?>
 
-    <!-- Liens de navigation -->
     <div class="flex justify-between items-center mt-4">
         <p class="text-muted">Déjà inscrit ?</p>
         <div class="flex gap-4">

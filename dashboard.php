@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $etudiant_id = $_SESSION['user_id'];
 
-// Récupérer les informations de l'étudiant
+// Fetch student information
 $stmt = $pdo->prepare("SELECT * FROM etudiants WHERE id = ?");
 $stmt->execute([$etudiant_id]);
 $etudiant = $stmt->fetch();
@@ -21,16 +21,7 @@ if ($etudiant === false) {
     exit();
 }
 
-// Récupérer le chemin de la photo (premier fichier comme photo par défaut)
-$photo_path = null;
-$stmt_photo = $pdo->prepare("SELECT nom_fichier FROM fichiers WHERE etudiant_id = ? ORDER BY id ASC LIMIT 1");
-$stmt_photo->execute([$etudiant_id]);
-$photo = $stmt_photo->fetch();
-if ($photo) {
-    $photo_path = 'uploads/' . htmlspecialchars($photo['nom_fichier']);
-}
-
-// Récupérer les modules auxquels l'étudiant est inscrit
+// Fetch modules for the student
 $stmt = $pdo->prepare("SELECT m.id_module, m.nom_module 
                        FROM inscriptions_modules im 
                        JOIN modules m ON im.id_module = m.id_module 
@@ -53,6 +44,11 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
 <div class="container">
     <header class="header">
         <h1>Bienvenue, <?php echo htmlspecialchars($etudiant['prenom'] . ' ' . $etudiant['nom']); ?></h1>
+        <?php if ($etudiant['photo_path']): ?>
+            <img src="<?php echo htmlspecialchars($etudiant['photo_path']); ?>" alt="Photo de profil" class="profile-image" style="max-width: 150px; border-radius: 50%;">
+        <?php else: ?>
+            <p>Aucune photo de profil disponible.</p>
+        <?php endif; ?>
     </header>
 
     <?php if (!empty($message)): ?>
@@ -62,11 +58,6 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
     <section class="card">
         <h3>Informations personnelles</h3>
         <div class="profile-section">
-            <?php if ($photo_path): ?>
-                <img src="<?php echo $photo_path; ?>" alt="Photo de profil" class="profile-image">
-            <?php else: ?>
-                <p>Aucune photo d'identité téléversée.</p>
-            <?php endif; ?>
             <div class="profile-info">
                 <p><strong>Email :</strong> <?php echo htmlspecialchars($etudiant['email'] ?? 'Non défini'); ?></p>
                 <p><strong>Apogée :</strong> <?php echo htmlspecialchars($etudiant['apogee'] ?? 'Non défini'); ?></p>
@@ -78,40 +69,55 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
                 ?></p>
             </div>
         </div>
-        <h4>Mettre à jour la photo de profil</h4>
-        <form action="upload_profile_image.php" method="post" enctype="multipart/form-data" class="form-group">
-            <label>Sélectionner une image (JPG, PNG, max 2 Mo) :</label>
-            <input type="file" name="profile_image" accept=".jpg,.jpeg,.png" required class="form-input">
-            <button type="submit" class="btn">Téléverser</button>
-        </form>
     </section>
 
     <section class="card">
-        <h3>Ajouter un justificatif d'absence</h3>
-        <?php if (empty($modules)): ?>
-            <p class="error-message">Vous devez d'abord vous inscrire à un module avant de pouvoir soumettre un justificatif d'absence.</p>
-        <?php else: ?>
-            <form action="upload_justificatif.php" method="post" enctype="multipart/form-data" class="form-group">
-                <label>Date d'absence :</label>
-                <input type="date" name="date_absence" required class="form-input">
-                <label>Module :</label>
-                <select name="module_id" required class="form-input">
-                    <?php foreach ($modules as $module): ?>
-                        <option value="<?php echo $module['id_module']; ?>"><?php echo htmlspecialchars($module['nom_module']); ?></option>
+        <h3>Ajouter un justificatif pour absence marquée</h3>
+        <?php
+        $stmt = $pdo->prepare("SELECT j.id, j.date_absence, m.nom_module, f.nom_filiere 
+                              FROM justificatifs j 
+                              JOIN modules m ON j.module_id = m.id_module 
+                              JOIN filieres f ON m.id_filiere = f.id_filiere 
+                              WHERE j.etudiant_id = ? AND j.marque_par_admin = TRUE AND j.fichier_path IS NULL 
+                              ORDER BY j.date_absence DESC");
+        $stmt->execute([$etudiant_id]);
+        $absences_admin = $stmt->fetchAll();
+        if (count($absences_admin) > 0): ?>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date d'Absence</th>
+                        <th>Module</th>
+                        <th>Filière</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($absences_admin as $absence): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($absence['date_absence']); ?></td>
+                            <td><?php echo htmlspecialchars($absence['nom_module']); ?></td>
+                            <td><?php echo htmlspecialchars($absence['nom_filiere']); ?></td>
+                            <td>
+                                <form action="upload_justificatif.php" method="post" enctype="multipart/form-data" class="form-group">
+                                    <input type="hidden" name="justificatif_id" value="<?php echo $absence['id']; ?>">
+                                    <input type="file" name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required class="form-input">
+                                    <button type="submit" class="btn">Soumettre</button>
+                                </form>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
-                </select>
-                <label>Fichier justificatif :</label>
-                <input type="file" name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required class="form-input">
-                <p>Formats acceptés : PDF, JPG, PNG (max 5 Mo).</p>
-                <button type="submit" class="btn">Soumettre</button>
-            </form>
+                </tbody>
+            </table>
+        <?php else: ?>
+            <p>Aucune absence marquée par l'administrateur sans justificatif.</p>
         <?php endif; ?>
     </section>
 
     <section class="card">
         <h3>Historique des absences marquées par l'administrateur</h3>
         <?php
-        $stmt = $pdo->prepare("SELECT j.date_absence, m.nom_module, f.nom_filiere 
+        $stmt = $pdo->prepare("SELECT j.date_absence, m.nom_module, f.nom_filiere, j.fichier_path 
                               FROM justificatifs j 
                               JOIN modules m ON j.module_id = m.id_module 
                               JOIN filieres f ON m.id_filiere = f.id_filiere 
@@ -126,6 +132,7 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
                         <th>Date d'Absence</th>
                         <th>Module</th>
                         <th>Filière</th>
+                        <th>Justificatif</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -134,6 +141,13 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
                             <td><?php echo htmlspecialchars($absence['date_absence']); ?></td>
                             <td><?php echo htmlspecialchars($absence['nom_module']); ?></td>
                             <td><?php echo htmlspecialchars($absence['nom_filiere']); ?></td>
+                            <td>
+                                <?php if ($absence['fichier_path']): ?>
+                                    <a href="<?php echo htmlspecialchars($absence['fichier_path']); ?>" target="_blank">Télécharger</a>
+                                <?php else: ?>
+                                    Aucun fichier
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -161,7 +175,7 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
             <ul class="file-list">
                 <?php foreach ($fichiers as $fichier) : ?>
                     <li>
-                        <a href='uploads/<?php echo htmlspecialchars($fichier['nom_fichier']); ?>' target='_blank'>
+                        <a href='Uploads/<?php echo htmlspecialchars($fichier['nom_fichier']); ?>' target='_blank'>
                             <?php echo htmlspecialchars($fichier['nom_fichier']); ?>
                         </a>
                         <span> - <?php echo htmlspecialchars($fichier['date_upload']); ?></span>
