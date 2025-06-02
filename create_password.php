@@ -67,6 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php if (!empty($message)) echo htmlspecialchars($message); ?>
 </p>
 
-<a href="http://localhost:8080/PHP/acceuil.php">⬅️ Retour à l'Accueil</a>
+<a href="http://localhost:63342/PHP/acceuil.php">⬅️ Retour à l'Accueil</a>
 </body>
 </html>

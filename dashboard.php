@@ -189,7 +189,7 @@ $message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : '';
 
     <div class="footer">
         <a href="logout.php" class="btn">🚪 Se déconnecter</a>
-        <a href="http://localhost:8080/PHP/acceuil.php" class="btn">⬅ Retour à l'Accueil</a>
+        <a href="http://localhost:63342/PHP/acceuil.php" class="btn">⬅ Retour à l'Accueil</a>
     </div>
 </div>
 </body>

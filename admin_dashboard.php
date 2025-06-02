@@ -104,7 +104,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
                     <th>Date d'Absence</th>
                     <th>Module</th>
                     <th>Fichier</th>
-                    <th>Statut</th>
                 </tr>
                 <?php
                 $stmt = $pdo->query("SELECT j.id, e.prenom, e.nom, j.date_absence, m.nom_module, j.fichier_path, j.statut 
@@ -124,9 +123,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
                     } else {
                         echo "Aucun fichier";
                     }
-                    echo "</td>
-                            <td>" . htmlspecialchars($justificatif['statut'] ?? '') . "</td>
-                        </tr>";
+
                 }
                 if ($stmt->rowCount() == 0) {
                     echo "<tr><td colspan='6'>Aucun justificatif soumis</td></tr>";
@@ -192,7 +189,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role']
             <p class="message message-error"><?php echo htmlspecialchars($message); ?></p>
         <?php endif; ?>
         <div class="mt-4 text-center">
-            <a href="http://localhost:8080/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
+            <a href="http://localhost:63342/PHP/acceuil.php" class="btn-secondary">⬅ Retour à l'Accueil</a>
         </div>
     </div>
     </body>
