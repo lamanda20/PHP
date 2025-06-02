@@ -40,7 +40,12 @@ session_start();
 
     <footer class="footer">
         <h3>Développeur :</h3>
-        <p>Projet développé par <strong>GHADI Taha</strong>.</p>
+        <p>Projet développé par:<strong>
+                GHADI Taha<br>
+                AIT-ABID Younes<br>
+                ADLOUNE Malak<br>
+                BELFADLI Hamza
+            </strong>.</p>
     </footer>
 </div>
 

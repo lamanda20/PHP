@@ -1,0 +1,10 @@
+[33m41c1e30[m[33m ([m[1;36mHEAD -> [m[1;32mTaha[m[33m)[m Résolution des conflits avec la branche origin/hamza
+[33m5545450[m Modifs locales avant merge
+[33mf3be7d6[m[33m ([m[1;31morigin/Hamza[m[33m)[m voici les modifications
+[33mebc8673[m Fusion de la branche Younes avec résolution de conflit
+[33m7a083aa[m Résolution de conflit : merge avec la branche Hamza
+[33mc821f20[m Ajout de PHPMailer et modification des fichiers de gestion
+[33m63cd808[m[33m ([m[1;31morigin/Younes[m[33m)[m Ajout de la gestion des modules et styles CSS
+[33m644a251[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/Taha[m[33m, [m[1;31morigin/Malak[m[33m, [m[1;32mmain[m[33m, [m[1;32mYounes[m[33m, [m[1;32mMalak[m[33m, [m[1;32mHamza[m[33m)[m Mise à jour du code avec les dernières modifications
+[33m5299e17[m Initial commit of admin dashboard with secure code
+[33m64f70d1[m Initial commit
